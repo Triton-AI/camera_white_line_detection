@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
+# 
+# Switch between 'cd2.VideoCapture(<camera_number>)' and 'cv2.VideoCapture(<viedo_filename>)'
+# 
+
 # video = cv2.VideoCapture(0)
 video = cv2.VideoCapture('race_track_speedup.mp4')
 
@@ -10,26 +14,39 @@ while True:
     _, frame = video.read()
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     
+    #
     # HSV = Hue Saturation Value 
+    #
     sensitivity = 70
     lower_white = np.array([0,0,255 - sensitivity])
     upper_white = np.array([255,sensitivity,255])
-
+    
+    #
+    # Region of interest for masking
+    #
     ROI_vertices = np.array([[(0,470), (750, 220), (1150, 220), (1882, 470)]], dtype=np.int32) 
-
+    
+    #
+    # Detect only white pixels and create contour mask     
+    #
     white_mask = cv2.inRange(hsv, lower_white, upper_white)
     white_pixels_only = cv2.bitwise_and(frame, frame, mask = white_mask)
     edges_image = cv2.Canny(white_pixels_only, 100, 300)
 
     cv2.imshow('edges_image', edges_image)
-
+    
+    #
+    # Create contour mask from the region of interest only    
+    #
     edges_mask = np.zeros_like(edges_image)   
     cv2.fillPoly(edges_mask, ROI_vertices, 255)
     edges_in_ROI = cv2.bitwise_and(edges_image, edges_mask)
 
     cv2.imshow('edges_in_ROI', edges_in_ROI)
-
-
+    
+    #
+    # Filter only the white lines from the region of interest     
+    #
     rho = 2            # distance resolution in pixels 
     theta = np.pi/180  # angular resolution in radians 
     threshold = 40     # minimum number of votes 
@@ -48,8 +65,10 @@ while True:
     a = 1
     b = 1
     y = 0    
-
+    
+    #
     # Resultant weighted image is calculated as follows: original_img * α + img * β + γ
+    #
     image_with_lines = cv2.addWeighted(frame, a, line_image, b, y)
 
     cv2.imshow('image_with_lines', image_with_lines)
